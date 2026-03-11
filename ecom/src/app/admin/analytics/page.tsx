@@ -1,160 +1,448 @@
-'use client'
-import { useEffect, useState } from 'react'
-import { analyticsService } from '@/lib/api'
-import type { AnalyticsSummary, TrendPoint } from '@/types'
+"use client";
+import { useEffect, useState } from "react";
+import { analyticsService } from "@/lib/api";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend
-} from 'recharts'
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
-const PERIODS = ['day', 'week', 'month', 'year', 'all'] as const
-type Period = typeof PERIODS[number]
+const PERIODS = ["Today", "Week", "Month", "Year"];
+const PIE_COLORS = [
+  "#6366f1",
+  "#10b981",
+  "#f59e0b",
+  "#f43f5e",
+  "#8b5cf6",
+  "#06b6d4",
+];
 
 export default function AnalyticsPage() {
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
-  const [trends, setTrends] = useState<TrendPoint[]>([])
-  const [topProducts, setTopProducts] = useState<any[]>([])
-  const [period, setPeriod] = useState<Period>('month')
-  const [trendPeriod, setTrendPeriod] = useState<'day' | 'week' | 'month'>('week')
-  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState("Month");
+  const [summary, setSummary] = useState<any>(null);
+  const [trends, setTrends] = useState<any[]>([]);
+  const [topProds, setTopProds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true)
+    setLoading(true);
+    const p = period.toLowerCase();
+    const tp =
+      p === "today"
+        ? "day"
+        : p === "week"
+          ? "week"
+          : p === "month"
+            ? "month"
+            : "year";
     Promise.all([
-      analyticsService.summary(period),
-      analyticsService.trends(trendPeriod),
-      analyticsService.topProducts(period),
-    ]).then(([s, t, tp]) => {
-      if (s.success) setSummary(s.data)
-      if (t.success) setTrends(t.data.series)
-      if (tp.success) setTopProducts(tp.data)
-      setLoading(false)
-    })
-  }, [period, trendPeriod])
+      analyticsService.summary(p),
+      analyticsService.trends(tp),
+      analyticsService.topProducts(p, 8),
+    ])
+      .then(([s, t, tp2]) => {
+        if (s.success) setSummary(s.data);
+        if (t.success) setTrends(t.data?.series ?? t.data ?? []);
+        if (tp2.success) setTopProds(tp2.data ?? []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Analytics error:", err);
+        setLoading(false);
+      });
+  }, [period]);
 
+  const kpis = summary
+    ? [
+        {
+          label: "Revenue",
+          value: `$${(summary.total_revenue_usd ?? 0).toFixed(2)}`,
+          color: "text-indigo-400",
+          bg: "bg-indigo-500/10",
+          border: "border-indigo-500/20",
+        },
+        {
+          label: "Total Cost",
+          value: `$${(summary.total_cost_usd ?? 0).toFixed(2)}`,
+          color: "text-amber-400",
+          bg: "bg-amber-500/10",
+          border: "border-amber-500/20",
+        },
+        {
+          label: "Net Profit",
+          value: `$${(summary.net_profit_usd ?? 0).toFixed(2)}`,
+          color: "text-emerald-400",
+          bg: "bg-emerald-500/10",
+          border: "border-emerald-500/20",
+        },
+        {
+          label: "Margin",
+          value: `${summary.profit_margin_pct ?? 0}%`,
+          color: "text-violet-400",
+          bg: "bg-violet-500/10",
+          border: "border-violet-500/20",
+        },
+        {
+          label: "Items Sold",
+          value: (summary.total_volume ?? 0).toLocaleString(),
+          color: "text-pink-400",
+          bg: "bg-pink-500/10",
+          border: "border-pink-500/20",
+        },
+      ]
+    : [];
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Sales Analytics</h1>
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-          {PERIODS.map(p => (
-            <button key={p} onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors
-                ${period === p ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}>
-              {p}
+        <div>
+          <h1 className="text-[22px] font-bold text-white tracking-tight">
+            Analytics
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Sales performance overview
+          </p>
+        </div>
+        <div className="flex bg-white/[0.04] border border-white/[0.07] rounded-xl p-1 gap-0.5">
+          {PERIODS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setPeriod(t)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all
+                ${period === t ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"}`}
+            >
+              {t}
             </button>
           ))}
         </div>
       </div>
 
-      {/* KPI Cards */}
-      {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <KpiCard label="Items Sold" value={summary.total_volume.toLocaleString()} icon="📦" color="indigo" />
-          <KpiCard label="Revenue" value={`$${summary.total_revenue_usd.toFixed(2)}`} icon="💰" color="blue" />
-          <KpiCard label="Cost" value={`$${summary.total_cost_usd.toFixed(2)}`} icon="🏷️" color="gray" />
-          <KpiCard label="Net Profit" value={`$${summary.net_profit_usd.toFixed(2)}`} icon="📈"
-            color={summary.net_profit_usd >= 0 ? 'green' : 'red'} />
-          <KpiCard label="Margin" value={`${summary.profit_margin_pct}%`} icon="🎯"
-            color={summary.profit_margin_pct >= 20 ? 'green' : 'orange'} />
+      {/* KPI grid */}
+      {loading ? (
+        <div className="grid grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="h-24 bg-white/[0.03] rounded-2xl animate-pulse"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+          {kpis.map((k) => (
+            <div
+              key={k.label}
+              className={`${k.bg} border ${k.border} rounded-2xl p-4`}
+            >
+              <div className={`text-xl font-bold ${k.color}`}>{k.value}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{k.label}</div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Trend Charts */}
-      <div className="bg-white border rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bold text-gray-800">Revenue & Profit Trend</h2>
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-            {(['day', 'week', 'month'] as const).map(p => (
-              <button key={p} onClick={() => setTrendPeriod(p)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium capitalize transition-colors
-                  ${trendPeriod === p ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>
-                {p}
-              </button>
-            ))}
+      {/* Charts row 1 */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Area chart */}
+        <div className="col-span-2 bg-[#10121a] border border-white/[0.06] rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-sm font-semibold text-white">
+                Revenue vs Profit
+              </h2>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                {period} trend
+              </p>
+            </div>
+            <div className="flex gap-3 text-[11px]">
+              {[
+                { label: "Revenue", color: "#6366f1" },
+                { label: "Cost", color: "#f59e0b" },
+                { label: "Profit", color: "#10b981" },
+              ].map((l) => (
+                <span
+                  key={l.label}
+                  className="flex items-center gap-1.5 text-slate-500"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: l.color }}
+                  />
+                  {l.label}
+                </span>
+              ))}
+            </div>
           </div>
+          {trends.length === 0 ? (
+            <div className="h-52 flex items-center justify-center text-slate-700 text-sm">
+              No sales data for this period
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={210}>
+              <AreaChart
+                data={trends}
+                margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  {[
+                    { id: "r", c: "#6366f1" },
+                    { id: "c", c: "#f59e0b" },
+                    { id: "p", c: "#10b981" },
+                  ].map((g) => (
+                    <linearGradient
+                      key={g.id}
+                      id={g.id}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor={g.c} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={g.c} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff06" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: "#475569" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#475569" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#1e2030",
+                    border: "1px solid #ffffff15",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "#94a3b8" }}
+                  itemStyle={{ color: "#e2e8f0" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  fill="url(#r)"
+                  name="Revenue"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="cost"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  fill="url(#c)"
+                  name="Cost"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="profit"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fill="url(#p)"
+                  name="Profit"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
+        {/* Top products donut */}
+        <div className="bg-[#10121a] border border-white/[0.06] rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-white mb-4">
+            Top Products
+          </h2>
+          {topProds.length === 0 ? (
+            <div className="h-52 flex items-center justify-center text-slate-700 text-sm">
+              No data
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-center">
+                <PieChart width={160} height={160}>
+                  <Pie
+                    data={topProds.slice(0, 6)}
+                    dataKey="total_qty"
+                    cx={75}
+                    cy={75}
+                    innerRadius={45}
+                    outerRadius={70}
+                    strokeWidth={0}
+                  >
+                    {topProds.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                {topProds.slice(0, 5).map((p, i) => (
+                  <div key={p.variant_id} className="flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: PIE_COLORS[i] }}
+                    />
+                    <span className="text-[11px] text-slate-400 flex-1 truncate">
+                      {p.product_name}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-300">
+                      {p.total_qty}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bar chart */}
+      <div className="bg-[#10121a] border border-white/[0.06] rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Sales Volume</h2>
+            <p className="text-[11px] text-slate-600 mt-0.5">
+              Units sold per period
+            </p>
+          </div>
+        </div>
         {trends.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-gray-400">No data for this period</div>
+          <div className="h-40 flex items-center justify-center text-slate-700 text-sm">
+            No data
+          </div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={trends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v: any) => `$${Number(v).toFixed(2)}`} />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} dot={false} name="Revenue" />
-              <Line type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2.5} dot={false} name="Profit" />
-              <Line type="monotone" dataKey="cost" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="4 4" name="Cost" />
-            </LineChart>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart
+              data={trends}
+              margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+              barSize={28}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#ffffff05"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: "#475569" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "#475569" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "#1e2030",
+                  border: "1px solid #ffffff15",
+                  borderRadius: 12,
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: "#94a3b8" }}
+                itemStyle={{ color: "#e2e8f0" }}
+              />
+              <Bar
+                dataKey="volume"
+                fill="#6366f1"
+                radius={[4, 4, 0, 0]}
+                name="Units Sold"
+              />
+            </BarChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      {/* Volume Chart */}
-      {trends.length > 0 && (
-        <div className="bg-white border rounded-2xl p-5">
-          <h2 className="font-bold text-gray-800 mb-5">Sales Volume</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={trends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="volume" stroke="#8b5cf6" strokeWidth={2.5} dot={false} name="Items Sold" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Top Products */}
-      {topProducts.length > 0 && (
-        <div className="bg-white border rounded-2xl p-5">
-          <h2 className="font-bold text-gray-800 mb-4">Top Products</h2>
-          <div className="space-y-2">
-            {topProducts.map((p, i) => (
-              <div key={p.variant_id} className="flex items-center gap-3 py-2 border-b last:border-0">
-                <span className="w-6 text-center text-sm font-bold text-gray-400">#{i + 1}</span>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800">{p.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-gray-900">{p.total_sold} sold</p>
-                  <p className="text-sm text-indigo-600">${p.total_revenue.toFixed(2)}</p>
-                </div>
-                <div className="w-24">
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="bg-indigo-400 h-2 rounded-full"
-                      style={{ width: `${(p.total_sold / topProducts[0].total_sold) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Top products table */}
+      {topProds.length > 0 && (
+        <div className="bg-[#10121a] border border-white/[0.06] rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <h2 className="text-sm font-semibold text-white">
+              Product Performance
+            </h2>
           </div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {[
+                  "#",
+                  "Product",
+                  "Variant",
+                  "Units Sold",
+                  "Revenue",
+                  "Profit",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left text-[10px] font-semibold text-slate-600 uppercase tracking-wider px-5 py-3"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.03]">
+              {topProds.map((p, i) => (
+                <tr key={p.variant_id} className="hover:bg-white/[0.015]">
+                  <td className="px-5 py-3.5">
+                    <span
+                      className={`text-xs font-mono font-bold
+                      ${i === 0 ? "text-amber-400" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : "text-slate-700"}`}
+                    >
+                      #{i + 1}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm font-medium text-slate-300">
+                    {p.product_name}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-slate-600">
+                    {p.variant_name}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full"
+                          style={{
+                            width: `${(p.total_qty / (topProds[0]?.total_qty || 1)) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {p.total_qty}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm font-semibold text-slate-200">
+                    ${p.total_revenue?.toFixed(2) ?? "—"}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-xs text-emerald-400 font-semibold">
+                      ${p.total_profit?.toFixed(2) ?? "—"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
-  )
-}
-
-function KpiCard({ label, value, icon, color }: { label: string; value: string; icon: string; color: string }) {
-  const colors: Record<string, string> = {
-    indigo: 'bg-indigo-50 border-indigo-100',
-    blue: 'bg-blue-50 border-blue-100',
-    green: 'bg-green-50 border-green-100',
-    red: 'bg-red-50 border-red-100',
-    orange: 'bg-orange-50 border-orange-100',
-    gray: 'bg-gray-50 border-gray-100',
-  }
-  return (
-    <div className={`border rounded-2xl p-4 ${colors[color] || colors.gray}`}>
-      <div className="text-2xl mb-1">{icon}</div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500 mt-0.5">{label}</div>
-    </div>
-  )
+  );
 }
