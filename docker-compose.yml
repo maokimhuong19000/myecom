@@ -1,0 +1,78 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: myecom-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: ecom_auth
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  authentication-service:
+    build: ./authentication-service
+    container_name: myecom-auth
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://root:secret@db:3306/ecom_auth
+      SECRET_KEY: fgfdgdsgfdsfgfdgfdgdfgdfgdfg234134
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      REFRESH_TOKEN_EXPIRE_DAYS: 30
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  product-service:
+    build: ./product-service
+    container_name: myecom-products
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://root:secret@db:3306/ecom_products
+      AUTH_SERVICE_URL: http://authentication-service:8000
+      SECRET_KEY: fgfdgdsgfdsfgfdgfdgdfgdfgdfg234134
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+      authentication-service:
+        condition: service_started
+
+  ecom:
+    build: ./ecom
+    container_name: myecom-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_AUTH_URL: http://localhost/api/auth
+      NEXT_PUBLIC_PRODUCT_URL: http://localhost/api/products
+    ports:
+      - "3000:3000"
+    depends_on:
+      - authentication-service
+      - product-service
+
+  nginx:
+    image: nginx:alpine
+    container_name: myecom-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - authentication-service
+      - product-service
+      - ecom
+
+volumes:
+  mysql_data:
