@@ -35,7 +35,7 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mb-4 shadow-xl shadow-indigo-500/30">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">MyEcom POS</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">Ecomerce</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to your dashboard</p>
         </div>
 

@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </div>
           {!collapsed && (
-            <span className="font-bold text-white tracking-tight text-[15px]">MyEcom</span>
+            <span className="font-bold text-white tracking-tight text-[15px]">Dashboard</span>
           )}
           <button onClick={() => setCollapsed(c => !c)}
             className="ml-auto text-slate-600 hover:text-slate-300 transition-colors p-1 rounded-lg hover:bg-white/5">

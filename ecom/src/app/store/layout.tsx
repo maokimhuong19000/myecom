@@ -205,7 +205,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </div>
           <div className="border-t border-stone-800 px-6 py-4 max-w-7xl mx-auto flex justify-between items-center">
             <p className="text-xs text-stone-600">© 2026 NM Fashion. All rights reserved.</p>
-            <p className="text-xs text-stone-600">Powered by MyEcom</p>
+            <p className="text-xs text-stone-600">Powered by Ecomerce</p>
           </div>
         </footer>
       </div>
