@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { productService, orderService, tokenStore } from '@/lib/api'
 import type { Product, CartItem } from '@/types'
+import khqrImage from './/khqr.jpg'
 
 const EXCHANGE_RATE = 4100
 
@@ -287,14 +288,19 @@ export default function RegisterPage() {
                 </div>
               )}
               {paymentMethod === 'khqr' && (
-                <div className="text-center py-4">
-                  <div className="bg-gray-100 rounded-xl p-8 inline-block">
-                    <div className="text-6xl">📱</div>
-                    <p className="mt-2 text-sm text-gray-500">Scan KHQR / Bakong code</p>
-                    <p className="font-bold text-indigo-600 mt-1">${cartTotal.toFixed(2)}</p>
+                  <div className="bg-stone-50 rounded-2xl p-8 text-center">
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src="/khqr.jpg"
+                        alt="KHQR / Bakong"
+                        className="w-48 h-48 object-contain rounded-xl border-2 border-stone-200"
+                      />
+                    </div>
+                    <p className="font-black text-2xl">${cartTotal.toFixed(2)}</p>
+                    <p className="text-stone-400 text-sm">{cartTotalKHR.toLocaleString()} ៛</p>
+                    <p className="text-stone-500 text-sm mt-2 font-medium">KIMHUONG MAO</p>
                   </div>
-                </div>
-              )}
+                )}
             </div>
             <div className="p-6 border-t">
               <button onClick={handleCheckout}

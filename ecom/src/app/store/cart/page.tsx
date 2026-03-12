@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useCart } from '../layout'
 import { orderService } from '@/lib/api'
-
+import khqrImage from './assets/khqr.jpg'
 const EXCHANGE_RATE = 4100
 
 export default function CartPage() {
@@ -155,14 +155,16 @@ export default function CartPage() {
 
                 {payMethod === 'khqr' && (
                   <div className="bg-stone-50 rounded-2xl p-8 text-center">
-                    <div className="w-40 h-40 bg-white border-2 border-stone-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <div className="text-center">
-                        <div className="text-5xl">📱</div>
-                        <p className="text-xs text-stone-400 mt-2">KHQR / Bakong</p>
-                      </div>
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src="/khqr.jpg"
+                        alt="KHQR / Bakong"
+                        className="w-48 h-48 object-contain rounded-xl border-2 border-stone-200"
+                      />
                     </div>
                     <p className="font-black text-2xl">${total.toFixed(2)}</p>
                     <p className="text-stone-400 text-sm">{totalKHR.toLocaleString()} ៛</p>
+                    <p className="text-stone-500 text-sm mt-2 font-medium">KIMHUONG MAO</p>
                   </div>
                 )}
 
