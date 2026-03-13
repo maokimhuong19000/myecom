@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+import httpx, os
 from base.database import get_db
 from base.security import (
     hash_password, verify_password,
@@ -13,8 +14,14 @@ from models.user import User
 
 router = APIRouter(tags=["Auth"])
 
+TELEGRAM_SERVICE = os.getenv("TELEGRAM_SERVICE_URL", "http://telegram-service:8002")
 
-# ---------- Schemas ----------
+async def _tg(path: str, data: dict):
+    try:
+        async with httpx.AsyncClient(timeout=3) as c:
+            await c.post(f"{TELEGRAM_SERVICE}{path}", json=data)
+    except Exception as e:
+        print(f"[TG] {path} failed: {e}")
 
 class RegisterRequest(BaseModel):
     full_name: str
@@ -23,29 +30,22 @@ class RegisterRequest(BaseModel):
     phone: Optional[str] = None
     role: Optional[str] = "cashier"
 
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-
 class RefreshRequest(BaseModel):
     refresh_token: str
-
 
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
 
-
-# ---------- Endpoints ----------
-
 @router.post("/register", status_code=201)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-
     user = User(
         full_name=payload.full_name,
         email=payload.email,
@@ -56,22 +56,21 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-
+    await _tg("/notify/user-registered", {"email": user.email, "full_name": user.full_name, "role": user.role})
     tokens = _issue_tokens(user)
     return success_response(data={**_user_dict(user), **tokens}, message="Registration successful")
 
-
 @router.post("/login")
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+async def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
+        await _tg("/notify/error", {"service": "auth-service", "error": f"Failed login: {payload.email}", "endpoint": "/login"})
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is disabled")
-
+    await _tg("/notify/user-login", {"email": user.email, "full_name": user.full_name, "role": user.role})
     tokens = _issue_tokens(user)
     return success_response(data={**_user_dict(user), **tokens}, message="Login successful")
-
 
 @router.post("/refresh")
 def refresh_token(payload: RefreshRequest):
@@ -81,11 +80,9 @@ def refresh_token(payload: RefreshRequest):
     access_token = create_access_token({"sub": decoded["sub"], "role": decoded.get("role")})
     return success_response(data={"access_token": access_token})
 
-
 @router.get("/me")
 def get_me(current_user: User = Depends(get_current_user)):
     return success_response(data=_user_dict(current_user))
-
 
 @router.post("/change-password")
 def change_password(
@@ -99,23 +96,17 @@ def change_password(
     db.commit()
     return success_response(message="Password updated successfully")
 
-
 @router.post("/verify-token")
 def verify_token_endpoint(current_user: User = Depends(get_current_user)):
-    """Internal endpoint for other services to validate a token."""
     return success_response(data=_user_dict(current_user))
 
-
-# ---------- Helpers ----------
-
 def _issue_tokens(user: User) -> dict:
-    payload = {"sub": str(user.id), "role": user.role}  # str(user.id) ← key fix
+    payload = {"sub": str(user.id), "role": user.role}
     return {
         "access_token": create_access_token(payload),
         "refresh_token": create_refresh_token(payload),
         "token_type": "bearer",
     }
-
 
 def _user_dict(user: User) -> dict:
     return {

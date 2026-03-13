@@ -26,6 +26,7 @@ services:
       SECRET_KEY: fgfdgdsgfdsfgfdgfdgdfgdfgdfg234134
       ACCESS_TOKEN_EXPIRE_MINUTES: 1440
       REFRESH_TOKEN_EXPIRE_DAYS: 30
+      TELEGRAM_SERVICE_URL: http://telegram-service:8002
     ports:
       - "8000:8000"
     depends_on:
@@ -40,6 +41,7 @@ services:
       DATABASE_URL: mysql+pymysql://root:secret@db:3306/ecom_products
       AUTH_SERVICE_URL: http://authentication-service:8000
       SECRET_KEY: fgfdgdsgfdsfgfdgfdgdfgdfgdfg234134
+      TELEGRAM_SERVICE_URL: http://telegram-service:8002
     ports:
       - "8001:8001"
     depends_on:
@@ -48,8 +50,27 @@ services:
       authentication-service:
         condition: service_started
 
+  telegram-service:
+    build: ./telegram-service
+    container_name: myecom-telegram
+    restart: unless-stopped
+    environment:
+      TELEGRAM_TOKEN: "7249194360:AAEmYgciUjPeunS2S0tfVIlOS85Psq4-MUo"
+      TELEGRAM_CHAT_ID: "1204310951"
+      DATABASE_URL: mysql+pymysql://root:secret@db:3306/ecom_products
+      STORE_NAME: "NM Fashion"
+    ports:
+      - "8002:8002"
+    depends_on:
+      db:
+        condition: service_healthy
+
   ecom:
-    build: ./ecom
+    build:
+      context: ./ecom
+      args:
+        NEXT_PUBLIC_AUTH_URL: http://localhost/api/auth
+        NEXT_PUBLIC_PRODUCT_URL: http://localhost/api/products
     container_name: myecom-frontend
     restart: unless-stopped
     environment:
