@@ -131,7 +131,7 @@ scheduler = AsyncIOScheduler(timezone="Asia/Phnom_Penh")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler.add_job(health_check,    "interval", minutes=30, id="health")
+    scheduler.add_job(health_check,    "interval", days=1, id="health")
     scheduler.add_job(check_low_stock, "interval", hours=2,    id="low_stock")
     scheduler.add_job(daily_summary,   "cron", hour=20, minute=0, id="daily")
     scheduler.add_job(weekly_summary,  "cron", day_of_week="mon", hour=9, id="weekly")

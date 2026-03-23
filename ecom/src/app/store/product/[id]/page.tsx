@@ -66,7 +66,7 @@ export default function ProductDetailPage() {
         <div>
           <div className="aspect-square bg-stone-100 rounded-3xl overflow-hidden">
             {product.image_url
-              ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+              ? <img src={product.image_url ? (product.image_url.startsWith("http") ? product.image_url : `http://localhost${product.image_url.replace("/api/products/uploads/", "/api/products/catalog/uploads/")}`) : ""} alt={product.name} className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center">
                   <div className="text-center text-stone-300">
                     <div className="text-8xl mb-4">👗</div>

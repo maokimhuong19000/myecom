@@ -157,7 +157,7 @@ export default function RegisterPage() {
                   className="w-full bg-white border rounded-xl p-3 text-left hover:border-indigo-400 hover:shadow-md transition-all"
                 >
                   {product.image_url
-                    ? <img src={product.image_url} alt={product.name} className="w-full h-28 object-cover rounded-lg mb-2" />
+                    ? <img src={product.image_url ? (product.image_url.startsWith("http") ? product.image_url : `http://localhost${product.image_url.replace("/api/products/uploads/", "/api/products/catalog/uploads/")}`) : ""} alt={product.name} className="w-full h-28 object-cover rounded-lg mb-2" />
                     : <div className="w-full h-28 bg-gray-100 rounded-lg mb-2 flex items-center justify-center text-3xl">📦</div>
                   }
                   <p className="font-medium text-sm text-gray-800 truncate">{product.name}</p>
@@ -169,7 +169,7 @@ export default function RegisterPage() {
               ) : (
                 <div className="bg-white border rounded-xl p-3">
                   {product.image_url
-                    ? <img src={product.image_url} alt={product.name} className="w-full h-20 object-cover rounded-lg mb-2" />
+                    ? <img src={product.image_url ? (product.image_url.startsWith("http") ? product.image_url : `http://localhost${product.image_url.replace("/api/products/uploads/", "/api/products/catalog/uploads/")}`) : ""} alt={product.name} className="w-full h-20 object-cover rounded-lg mb-2" />
                     : <div className="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center text-2xl">📦</div>
                   }
                   <p className="font-medium text-sm text-gray-800 truncate mb-2">{product.name}</p>

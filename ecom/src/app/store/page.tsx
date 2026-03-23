@@ -60,7 +60,7 @@ function ProductCard({ product }: { product: Product }) {
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="relative aspect-[3/4] bg-stone-100 rounded-2xl overflow-hidden mb-3">
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          ? <img src={product.image_url ? (product.image_url.startsWith("http") ? product.image_url : `http://localhost${product.image_url.replace("/api/products/uploads/", "/api/products/catalog/uploads/")}`) : ""} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
           : <div className="w-full h-full flex flex-col items-center justify-center text-stone-300"><div className="text-5xl mb-2">👗</div><div className="text-xs">No image</div></div>
         }
         <div className={`absolute inset-x-0 bottom-0 p-3 transition-all duration-300 ${hovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>

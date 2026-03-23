@@ -44,6 +44,8 @@ services:
       TELEGRAM_SERVICE_URL: http://telegram-service:8002
     ports:
       - "8001:8001"
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -56,7 +58,7 @@ services:
     restart: unless-stopped
     environment:
       TELEGRAM_TOKEN: "7249194360:AAEmYgciUjPeunS2S0tfVIlOS85Psq4-MUo"
-      TELEGRAM_CHAT_ID: "1204310951"
+      TELEGRAM_CHAT_ID: "-5220469610"
       DATABASE_URL: mysql+pymysql://root:secret@db:3306/ecom_products
       STORE_NAME: "NM Fashion"
     ports:
@@ -90,6 +92,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./uploads:/app/uploads:ro
     depends_on:
       - authentication-service
       - product-service

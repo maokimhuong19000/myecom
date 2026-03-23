@@ -1,7 +1,7 @@
 import type { ApiResponse, User, AuthTokens, Product, Category, InventoryLog, LowStockAlert, Order, AnalyticsSummary, TrendPoint } from '@/types'
 
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:8000/api/auth'
-const PRODUCT_URL = process.env.NEXT_PUBLIC_PRODUCT_URL || 'http://localhost:8001/api/products'
+const PRODUCT_URL = process.env.NEXT_PUBLIC_PRODUCT_URL || 'http://localhost/api/products'
 const CATALOG_URL = `${PRODUCT_URL}/catalog`
 
 // ─── Token Management ────────────────────────────────────────────────────────
@@ -155,3 +155,9 @@ export const analyticsService = {
   topProducts: (period: string = 'month', limit = 10) =>
     apiFetch<any[]>(`${PRODUCT_URL}/analytics/top-products?period=${period}&limit=${limit}`),
 }
+export function getImageUrl(url: string | null | undefined): string {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `http://localhost${url}`
+}
+

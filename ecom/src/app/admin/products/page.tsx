@@ -5,15 +5,15 @@ import type { Product, Category } from '@/types'
 import ProductForm from '@/features/products/ProductForm'
 
 export default function ProductsPage() {
-  const [products, setProducts]   = useState<Product[]>([])
+  const [products, setProducts]= useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [search, setSearch]       = useState('')
-  const [catId, setCatId]         = useState<number | undefined>()
-  const [showForm, setShowForm]   = useState(false)
-  const [editing, setEditing]     = useState<Product | null>(null)
-  const [showCatForm, setShowCatForm] = useState(false)
-  const [newCatName, setNewCatName]   = useState('')
-  const [loading, setLoading]     = useState(true)
+  const [search, setSearch]= useState('')
+  const [catId, setCatId]= useState<number | undefined>()
+  const [showForm, setShowForm]= useState(false)
+  const [editing, setEditing]= useState<Product | null>(null)
+  const [showCatForm, setShowCatForm]= useState(false)
+  const [newCatName, setNewCatName]= useState('')
+  const [loading, setLoading]= useState(true)
 
   const load = async () => {
     setLoading(true)
