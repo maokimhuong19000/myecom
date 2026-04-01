@@ -152,6 +152,17 @@ async def on_order(req: Request):
     change_line = f"\n💵 <b>Change:</b> ${change:.2f}" if change is not None else ""
     khr = d.get("total_khr", 0)
     item_lines = d.get("item_lines", "")
+    cname   = d.get("customer_name", "")
+    cphone  = d.get("customer_phone", "")
+    cemail  = d.get("customer_email", "")
+    caddr   = d.get("customer_address", "")
+    cnote   = d.get("customer_note", "")
+    cinfo = ""
+    if cname:   cinfo += f"\n👤 <b>Customer:</b> {cname}"
+    if cphone:  cinfo += f"\n📞 <b>Phone:</b> {cphone}"
+    if cemail:  cinfo += f"\nℹ️ <b>Email:</b> {cemail}"
+    if caddr:   cinfo += f"\n📍 <b>Address:</b> {caddr}"
+    if cnote:   cinfo += f"\n💬 <b>Note:</b> {cnote}"
     msg = (
         hdr("New Order Received", "🛍️") +
         f"<code>Order #{d.get('order_id', 0)}</code>\n\n"
@@ -159,7 +170,8 @@ async def on_order(req: Request):
         f"💰 <b>Total:</b> ${d.get('total_usd', 0):.2f} ({int(khr):,} ៛)"
         f"{change_line}\n"
         f"ℹ️ <b>Payment:</b> {d.get('payment_method', '').upper()}\n"
-        f"👤 <b>Staff:</b> {d.get('staff', 'POS')}\n"
+        f"👤 <b>Staff:</b> {d.get('staff', 'POS')}"
+        f"{cinfo}\n"
         f"🕐 {now_str()}"
     )
     await send(msg)

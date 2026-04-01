@@ -132,6 +132,11 @@ export const orderService = {
     payment_method: 'cash' | 'khqr'
     cash_tendered_usd?: number
     exchange_rate?: number
+    customer_name?: string
+    customer_phone?: string
+    customer_email?: string
+    customer_address?: string
+    customer_note?: string
   }) =>
     apiFetch<Order>(`${PRODUCT_URL}/orders/checkout`, {
       method: 'POST',

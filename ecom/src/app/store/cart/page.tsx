@@ -3,20 +3,53 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useCart } from '../layout'
 import { orderService } from '@/lib/api'
-import khqrImage from './assets/khqr.jpg'
+
 const EXCHANGE_RATE = 4100
+
+interface CustomerInfo {
+  full_name: string
+  phone: string
+  email: string
+  address: string
+  note: string
+}
 
 export default function CartPage() {
   const { items, remove, update, total, clear } = useCart()
-  const [step,          setStep]          = useState<'cart' | 'checkout' | 'success'>('cart')
-  const [payMethod,     setPayMethod]     = useState<'cash' | 'khqr'>('cash')
-  const [cashTendered,  setCashTendered]  = useState('')
-  const [placing,       setPlacing]       = useState(false)
-  const [orderResult,   setOrderResult]   = useState<any>(null)
-  const [error,         setError]         = useState('')
+  const [step,         setStep]         = useState<'cart' | 'checkout' | 'success'>('cart')
+  const [payMethod,    setPayMethod]    = useState<'cash' | 'khqr'>('cash')
+  const [cashTendered, setCashTendered] = useState('')
+  const [placing,      setPlacing]      = useState(false)
+  const [orderResult,  setOrderResult]  = useState<any>(null)
+  const [error,        setError]        = useState('')
+  const [customer,     setCustomer]     = useState<CustomerInfo>({
+    full_name: '', phone: '', email: '', address: '', note: ''
+  })
+  const [formErrors,   setFormErrors]   = useState<Partial<CustomerInfo>>({})
 
-  const change = cashTendered ? parseFloat(cashTendered) - total : 0
-  const totalKHR = Math.round(total * EXCHANGE_RATE)
+  const change    = cashTendered ? parseFloat(cashTendered) - total : 0
+  const totalKHR  = Math.round(total * EXCHANGE_RATE)
+
+  const updateCustomer = (field: keyof CustomerInfo, value: string) => {
+    setCustomer(prev => ({ ...prev, [field]: value }))
+    if (formErrors[field]) setFormErrors(prev => ({ ...prev, [field]: '' }))
+  }
+
+  const validateCustomer = () => {
+    const errors: Partial<CustomerInfo> = {}
+    if (!customer.full_name.trim()) errors.full_name = 'Full name is required'
+    if (!customer.phone.trim()) errors.phone = 'Phone number is required'
+    return errors
+  }
+
+  const handleProceedToCheckout = () => {
+    const errors = validateCustomer()
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+    setStep('checkout')
+  }
 
   const handleCheckout = async () => {
     if (items.length === 0) return
@@ -26,6 +59,11 @@ export default function CartPage() {
       payment_method: payMethod,
       cash_tendered_usd: payMethod === 'cash' && cashTendered ? parseFloat(cashTendered) : undefined,
       exchange_rate: EXCHANGE_RATE,
+      customer_name: customer.full_name || undefined,
+      customer_phone: customer.phone || undefined,
+      customer_email: customer.email || undefined,
+      customer_address: customer.address || undefined,
+      customer_note: customer.note || undefined,
     })
     setPlacing(false)
     if (res.success) {
@@ -37,17 +75,25 @@ export default function CartPage() {
     }
   }
 
+  const inp = (error?: string) =>
+    `w-full border ${error ? 'border-red-400 bg-red-50' : 'border-stone-200 bg-white'} rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400 transition-colors`
+
   if (step === 'success') return (
     <div className="max-w-lg mx-auto px-6 py-24 text-center" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
         <svg width="36" height="36" fill="none" stroke="#10b981" strokeWidth="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <h1 className="text-3xl font-black text-stone-900 mb-2">Order Placed!</h1>
-      <p className="text-stone-500 mb-2">Order #{orderResult?.order_id}</p>
+      <p className="text-stone-500 mb-1">Order #{orderResult?.order_id}</p>
+      <p className="text-stone-600 text-sm mb-2">Thank you, <span className="font-bold">{customer.full_name}</span>!</p>
       <p className="text-2xl font-black text-black mb-1">${orderResult?.total_usd?.toFixed(2)}</p>
       {orderResult?.change_usd > 0 && (
-        <p className="text-emerald-600 text-sm font-medium mb-6">Change: ${orderResult.change_usd.toFixed(2)} / {Math.round(orderResult.change_usd * EXCHANGE_RATE).toLocaleString()} ៛</p>
+        <p className="text-emerald-600 text-sm font-medium mb-6">
+          Change: ${orderResult.change_usd.toFixed(2)} / {Math.round(orderResult.change_usd * EXCHANGE_RATE).toLocaleString()} ៛
+        </p>
       )}
+      {customer.phone && <p className="text-stone-400 text-xs mb-1">📞 {customer.phone}</p>}
+      {customer.address && <p className="text-stone-400 text-xs mb-4">📍 {customer.address}</p>}
       <p className="text-stone-400 text-sm mb-8">Thank you for shopping with NM Fashion!</p>
       <Link href="/store/shop"
         className="inline-block bg-black text-white font-bold px-10 py-4 rounded-full text-sm tracking-widest uppercase hover:bg-stone-800 transition-colors">
@@ -74,15 +120,98 @@ export default function CartPage() {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-12">
-          {/* Items */}
-          <div className="col-span-2">
+          {/* Left column */}
+          <div className="col-span-2 space-y-6">
+
+            {/* ── CUSTOMER INFO (always visible) ── */}
+            <div className="bg-stone-50 rounded-2xl p-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">
+                Customer Information
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Full Name */}
+                <div>
+                  <label className="text-xs text-stone-500 font-medium mb-1 block">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className={inp(formErrors.full_name)}
+                    placeholder="e.g. Sokha Chan"
+                    value={customer.full_name}
+                    onChange={e => updateCustomer('full_name', e.target.value)}
+                  />
+                  {formErrors.full_name && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.full_name}</p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="text-xs text-stone-500 font-medium mb-1 block">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className={inp(formErrors.phone)}
+                    placeholder="e.g. 012 345 678"
+                    value={customer.phone}
+                    onChange={e => updateCustomer('phone', e.target.value)}
+                  />
+                  {formErrors.phone && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="text-xs text-stone-500 font-medium mb-1 block">
+                    Email <span className="text-stone-300 text-xs font-normal">(optional)</span>
+                  </label>
+                  <input
+                    className={inp()}
+                    placeholder="e.g. sokha@email.com"
+                    type="email"
+                    value={customer.email}
+                    onChange={e => updateCustomer('email', e.target.value)}
+                  />
+                </div>
+
+                {/* Address */}
+                <div>
+                  <label className="text-xs text-stone-500 font-medium mb-1 block">
+                    Address <span className="text-stone-300 text-xs font-normal">(optional)</span>
+                  </label>
+                  <input
+                    className={inp()}
+                    placeholder="e.g. Phnom Penh"
+                    value={customer.address}
+                    onChange={e => updateCustomer('address', e.target.value)}
+                  />
+                </div>
+
+                {/* Note */}
+                <div className="col-span-2">
+                  <label className="text-xs text-stone-500 font-medium mb-1 block">
+                    Note / Special Request <span className="text-stone-300 text-xs font-normal">(optional)</span>
+                  </label>
+                  <textarea
+                    className={inp() + ' resize-none'}
+                    rows={2}
+                    placeholder="Any special requests or delivery notes..."
+                    value={customer.note}
+                    onChange={e => updateCustomer('note', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ── CART ITEMS ── */}
             {step === 'cart' ? (
               <div className="space-y-5">
                 {items.map(item => (
                   <div key={item.variantId} className="flex gap-5 p-5 bg-stone-50 rounded-2xl">
                     <div className="w-24 h-28 bg-white rounded-xl overflow-hidden flex-shrink-0 border border-stone-100">
                       {item.image
-                        ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ? <img src={item.image.startsWith('/api') ? `http://localhost${item.image}` : item.image} alt={item.name} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center text-stone-300 text-3xl">👗</div>
                       }
                     </div>
@@ -111,7 +240,7 @@ export default function CartPage() {
                 ))}
               </div>
             ) : (
-              /* Checkout form */
+              /* ── PAYMENT FORM ── */
               <div className="space-y-5">
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
@@ -122,8 +251,8 @@ export default function CartPage() {
                   <p className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">Payment Method</p>
                   <div className="flex gap-3">
                     {[
-                      { key: 'cash', label: '💵 Cash', sub: 'Pay with cash' },
-                      { key: 'khqr', label: '📱 KHQR', sub: 'Scan to pay' },
+                      { key: 'cash',  label: '💵 Cash',  sub: 'Pay with cash' },
+                      { key: 'khqr',  label: '📱 KHQR',  sub: 'Scan to pay' },
                     ].map(m => (
                       <button key={m.key} onClick={() => setPayMethod(m.key as 'cash' | 'khqr')}
                         className={`flex-1 p-4 rounded-xl border-2 text-left transition-all
@@ -156,11 +285,8 @@ export default function CartPage() {
                 {payMethod === 'khqr' && (
                   <div className="bg-stone-50 rounded-2xl p-8 text-center">
                     <div className="flex justify-center mb-4">
-                      <img
-                        src="/khqr.jpg"
-                        alt="KHQR / Bakong"
-                        className="w-48 h-48 object-contain rounded-xl border-2 border-stone-200"
-                      />
+                      <img src="/khqr.jpg" alt="KHQR / Bakong"
+                        className="w-48 h-48 object-contain rounded-xl border-2 border-stone-200" />
                     </div>
                     <p className="font-black text-2xl">${total.toFixed(2)}</p>
                     <p className="text-stone-400 text-sm">{totalKHR.toLocaleString()} ៛</p>
@@ -178,11 +304,22 @@ export default function CartPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Customer summary */}
+                <div className="bg-stone-50 rounded-2xl p-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-3">Customer</p>
+                  <div className="space-y-1 text-sm">
+                    <p className="font-semibold text-stone-800">{customer.full_name} · {customer.phone}</p>
+                    {customer.email   && <p className="text-stone-500">✉️ {customer.email}</p>}
+                    {customer.address && <p className="text-stone-500">📍 {customer.address}</p>}
+                    {customer.note    && <p className="text-stone-500 italic">&ldquo;{customer.note}&rdquo;</p>}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Summary sidebar */}
+          {/* ── SIDEBAR ── */}
           <div className="col-span-1">
             <div className="bg-stone-50 rounded-2xl p-6 sticky top-24">
               <h3 className="font-bold text-stone-900 mb-5">Order Summary</h3>
@@ -205,7 +342,7 @@ export default function CartPage() {
               </div>
 
               {step === 'cart' ? (
-                <button onClick={() => setStep('checkout')}
+                <button onClick={handleProceedToCheckout}
                   className="w-full bg-black text-white font-bold py-4 rounded-xl text-sm tracking-widest uppercase hover:bg-stone-800 transition-colors">
                   Proceed to Checkout
                 </button>

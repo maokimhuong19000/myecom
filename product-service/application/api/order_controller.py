@@ -30,6 +30,11 @@ class CheckoutRequest(BaseModel):
     payment_method: str = "cash"
     cash_tendered_usd: Optional[float] = None
     exchange_rate: Optional[float] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_email: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_note: Optional[str] = None
 
 @router.post("/checkout", status_code=201)
 async def checkout(
@@ -118,6 +123,11 @@ async def checkout(
         "staff":          f"User #{user.get('id')}",
         "item_lines":     item_lines,
         "change_usd":     float(order.change_usd) if order.change_usd is not None else None,
+        "customer_name":  payload.customer_name if hasattr(payload, 'customer_name') else "",
+        "customer_phone": payload.customer_phone if hasattr(payload, 'customer_phone') else "",
+        "customer_email": payload.customer_email if hasattr(payload, 'customer_email') else "",
+        "customer_address": payload.customer_address if hasattr(payload, 'customer_address') else "",
+        "customer_note":  payload.customer_note if hasattr(payload, 'customer_note') else "",
     })
 
     return success_response(
